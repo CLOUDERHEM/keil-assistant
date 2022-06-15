@@ -5,7 +5,7 @@ import * as event from 'events';
 import * as fs from 'fs';
 import * as node_path from 'path';
 import * as child_process from 'child_process';
-import * as vscodeVariables from 'vscode-variables';
+// import * as vscodeVariables from 'vscode-variables';
 
 import { File } from '../lib/node_utility/File';
 import { ResourceManager } from './ResourceManager';
@@ -278,12 +278,12 @@ class KeilProject implements IView, KeilProjectInfo {
             await this.load();
             this.notifyUpdateView();
         } catch (err) {
-            if (err.code && err.code === 'EBUSY') {
-                this.logger.log(`[Warn] uVision project file '${this.uvprjFile.name}' is locked !, delay 500 ms and retry !`);
-                setTimeout(() => this.onReload(), 500);
-            } else {
-                vscode.window.showErrorMessage(`reload project failed !, msg: ${err.message}`);
-            }
+            // if (err.code && err.code === 'EBUSY') {
+            //     this.logger.log(`[Warn] uVision project file '${this.uvprjFile.name}' is locked !, delay 500 ms and retry !`);
+            //     setTimeout(() => this.onReload(), 500);
+            // } else {
+            //     vscode.window.showErrorMessage(`reload project failed !, msg: ${err.message}`);
+            // }
         }
     }
 
@@ -777,7 +777,8 @@ class C51Target extends Target {
         const exeFile = new File(ResourceManager.getInstance().getC51UV4Path());
         if (exeFile.IsFile()) {
             return [
-                node_path.dirname(exeFile.dir) + File.sep + 'C51' + File.sep + 'INC'
+                node_path.dirname(exeFile.dir) + File.sep + 'C51' + File.sep + 'INC',
+                node_path.dirname(exeFile.dir) + File.sep + 'C51' + File.sep + 'INC' + File.sep + 'Atmel'
             ];
         }
         return undefined;
@@ -1182,11 +1183,15 @@ class ProjectExplorer implements vscode.TreeDataProvider<IView> {
             const workspace = new File(wsFilePath);
             if (workspace.IsDir()) {
                 const excludeList = ResourceManager.getInstance().getProjectExcludeList();
-                const uvList = workspace.GetList([/\.uvproj[x]?$/i], File.EMPTY_FILTER).concat(ResourceManager.getInstance().getProjectFileLocationList())
+                const arrayFile = new Array<File>();
+                ResourceManager.getInstance().getProjectFileLocationList().forEach((fileLocation) => {
+                    arrayFile.push(new File(fileLocation));
+                })
+                const uvList = workspace.GetList([/\.uvproj[x]?$/i], File.EMPTY_FILTER).concat(arrayFile)
                     .filter((file) => { return !excludeList.includes(file.name); });
                 for (const uvFile of uvList) {
                     try {
-                        await this.openProject(vscodeVariables(uvFile));
+                        await this.openProject(uvFile.path);
                     } catch (error) {
                         vscode.window.showErrorMessage(`open project: '${uvFile.name}' failed !, msg: ${(<Error>error).message}`);
                     }
